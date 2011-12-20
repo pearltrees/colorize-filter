@@ -1,8 +1,50 @@
+[ INSTALL ]
+
+Pour créer et éditer des filtres, on utilise Pixel Bender Toolkit. Il est disponible à cette adresse : http://www.adobe.com/devnet/pixelbender.html
+
+Attention, Flash utilise des couleurs prémultipliées par la valeur de l'alpha. Le filtre reçoit donc des valeurs multipliées par l'alpha et doit renvoyer des valeurs multipliées par l'alpha également. Dans les préférences de Pixel Bender, il faut cocher l'option permettant de reproduire ce mécanisme de Flash afin d'avoir un aperçu fidèle.
+
+Le filtre de colorisation permet de coloriser une image en nuance de gris avec la couleur C que l'on veut. On obtient donc une image en nuance d'une seule couleur C (du blanc au noir en passant par la couleur C)
+
+Pour passer d'une teinte gris à la teinte colorisée correspondante, on applique une fonction de conversion qui n'est autre que l'unique polynôme passant par les trois points suivants :
+
+    (0, 0)
+    (0.5, c) avec c la valeur de chaque composante de la couleur C
+    (1, 1) 
+
+Après calcul et simplification, le polynôme est le suivant :
+
+y = ((2 - 4c)x + (4c - 1))x
+
+Le code suivant tient compte de la prémultiplication par l'alpha en normalisant les composantes à l'entrée et la sortie et on change aussi l'alpha par la valeur donnée en entrée.
+
+<languageVersion: 1.0;>
+kernel ColorizeFilter
+<   namespace : "broceliand";
+    vendor : "Pearltrees";
+    version : 1;
+    description : "Colorize a gray image";> {
+    
+    parameter pixel4 color <
+        minValue: pixel4(0,0,0,0);
+        maxValue: pixel4(1,1,1,1);
+        defaultValue: pixel4(0.5,0.5,0.5,1);>;
+    input image4 img;
+    output pixel4 dst;
+    
+    void evaluatePixel() {
+        dst = sampleNearest(img, outCoord());
+        dst.rgb = dst.rgb / dst.a;
+        dst.rgb = ((pixel1(2) - pixel1(4)*color.rgb) * dst.rgb  + (pixel1(4) * color.rgb - pixel1(1))) * dst.rgb * color.a * dst.a;
+        dst.a = color.a * dst.a;
+    }
+}
+
+Pour utiliser ce filtre dans Flex/Flash, il faut l'exporter pour Flash (.pbj) et l'embedder dans l'appli avec le nom ColorizeFilter.pbj.
+
 [ USAGE ]
 
 myImage.filters = [FiltersManager.getColorizeFilter(myColor)];
-
-Based on Pixel Bender: http://www.adobe.com/devnet/pixelbender.html
 
 [ LICENCE ]
 
